@@ -15,32 +15,8 @@ from typing import Any
 from openai import AsyncOpenAI
 
 from ..config import get_settings
+from ..traces.cost import compute_cost_usd
 from .base import CompletionResponse, Provider, TokenUsage, ToolCall
-
-OPENAI_PRICING: dict[str, dict[str, float]] = {
-    "gpt-5": {"input": 5.00, "output": 15.00},
-    "gpt-5-mini": {"input": 1.00, "output": 4.00},
-    "gpt-4o": {"input": 2.50, "output": 10.00},
-    "gpt-4o-mini": {"input": 0.15, "output": 0.60},
-    "o3": {"input": 10.00, "output": 40.00},
-    "o3-mini": {"input": 1.10, "output": 4.40},
-}
-
-
-def _price_lookup(model: str) -> dict[str, float]:
-    if model in OPENAI_PRICING:
-        return OPENAI_PRICING[model]
-    for key, prices in OPENAI_PRICING.items():
-        if model.startswith(key):
-            return prices
-    return {"input": 2.50, "output": 10.00}
-
-
-def compute_cost_usd(model: str, usage: TokenUsage) -> float:
-    p = _price_lookup(model)
-    input_dollars = (usage.input_tokens * p["input"]) / 1_000_000
-    output_dollars = (usage.output_tokens * p["output"]) / 1_000_000
-    return round(input_dollars + output_dollars, 6)
 
 
 class OpenAIProvider(Provider):
@@ -105,7 +81,7 @@ class OpenAIProvider(Provider):
             content=content,
             tool_calls=tool_calls,
             usage=usage,
-            cost_usd=compute_cost_usd(model, usage),
+            cost_usd=compute_cost_usd("openai", model, usage),
             latency_ms=latency_ms,
             model=model,
             provider=self.name,

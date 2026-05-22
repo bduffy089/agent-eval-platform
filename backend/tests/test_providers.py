@@ -15,10 +15,10 @@ from typing import Any
 
 import pytest
 
-from src.providers.base import CompletionResponse
-from src.providers.claude import ClaudeProvider, compute_cost_usd as claude_cost
-from src.providers.openai import OpenAIProvider, compute_cost_usd as openai_cost
-from src.providers.base import TokenUsage
+from src.providers.base import CompletionResponse, TokenUsage
+from src.providers.claude import ClaudeProvider
+from src.providers.openai import OpenAIProvider
+from src.traces.cost import compute_cost_usd
 
 
 class _FakeAnthropicMessages:
@@ -144,10 +144,10 @@ def test_claude_cost_includes_cache_discount() -> None:
         cache_write_tokens=0,
     )
     # 1M input at $3 + 1M cache reads at 0.1x = $3.00 + $0.30 = $3.30
-    assert claude_cost("claude-sonnet-4-6", usage) == 3.30
+    assert compute_cost_usd("claude", "claude-sonnet-4-6", usage) == 3.30
 
 
 def test_openai_cost_basic() -> None:
     usage = TokenUsage(input_tokens=1_000_000, output_tokens=1_000_000)
     # gpt-5: $5 in + $15 out per 1M
-    assert openai_cost("gpt-5", usage) == 20.0
+    assert compute_cost_usd("openai", "gpt-5", usage) == 20.0

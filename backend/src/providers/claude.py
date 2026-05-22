@@ -14,35 +14,8 @@ from typing import Any
 from anthropic import AsyncAnthropic
 
 from ..config import get_settings
+from ..traces.cost import compute_cost_usd
 from .base import CompletionResponse, Provider, TokenUsage, ToolCall
-
-# Per-million-token pricing in USD. Update when Anthropic changes pricing.
-# Cache reads bill at 0.1x input; cache writes at 1.25x input.
-CLAUDE_PRICING: dict[str, dict[str, float]] = {
-    "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
-    "claude-haiku-4-5": {"input": 1.00, "output": 5.00},
-    "claude-opus-4-7": {"input": 15.00, "output": 75.00},
-}
-
-
-def _price_lookup(model: str) -> dict[str, float]:
-    if model in CLAUDE_PRICING:
-        return CLAUDE_PRICING[model]
-    # Fall back to nearest family prefix. Keeps things working when Anthropic ships a
-    # point release before we update the table.
-    for key, prices in CLAUDE_PRICING.items():
-        if model.startswith(key):
-            return prices
-    return {"input": 3.00, "output": 15.00}
-
-
-def compute_cost_usd(model: str, usage: TokenUsage) -> float:
-    p = _price_lookup(model)
-    input_dollars = (usage.input_tokens * p["input"]) / 1_000_000
-    output_dollars = (usage.output_tokens * p["output"]) / 1_000_000
-    cache_read_dollars = (usage.cache_read_tokens * p["input"] * 0.10) / 1_000_000
-    cache_write_dollars = (usage.cache_write_tokens * p["input"] * 1.25) / 1_000_000
-    return round(input_dollars + output_dollars + cache_read_dollars + cache_write_dollars, 6)
 
 
 class ClaudeProvider(Provider):
@@ -110,7 +83,7 @@ class ClaudeProvider(Provider):
             content="".join(text_parts),
             tool_calls=tool_calls,
             usage=usage,
-            cost_usd=compute_cost_usd(model, usage),
+            cost_usd=compute_cost_usd("claude", model, usage),
             latency_ms=latency_ms,
             model=model,
             provider=self.name,
