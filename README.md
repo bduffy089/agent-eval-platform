@@ -8,11 +8,7 @@ Most multi-agent systems do not fail on capability. They fail on production econ
 
 I built a multi-agent GTM system. Five specialized agents under a chief of staff orchestrator, custom MCP server, provisional patent filed on the architecture. Ran it in production.
 
-A few months in I hit a wall I had not designed for. API costs scaled faster than the value the agents were producing, and I had no infrastructure to do anything about it intelligently:
-
-- No per-agent cost attribution.
-- No eval signal telling me which model was overkill for which task.
-- No disciplined prompt caching.
+A few months in, AI labs changed pricing models and forced me back onto API pricing. Rising costs meant it was time for a solution.
 
 I paused the system and started building the layer that resolves it. That layer is this repo.
 
