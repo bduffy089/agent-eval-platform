@@ -1,0 +1,48 @@
+name: json_extraction
+description: >
+  Tests whether the model returns a strictly valid JSON object with the requested
+  fields. Used to validate that small, cheap models can handle structured extraction
+  before we escalate to a larger model.
+
+cases:
+  - id: company_basic
+    input: |
+      Return JSON with fields "name" and "industry" for this company.
+      "Acme Robotics, a manufacturer of industrial automation equipment."
+    expected: |
+      {"name": "Acme Robotics", "industry": "industrial automation"}
+    scorers:
+      - kind: json_schema
+        params:
+          schema:
+            type: object
+            required: ["name", "industry"]
+            properties:
+              name:
+                type: string
+              industry:
+                type: string
+      - kind: contains
+        params:
+          substring: Acme Robotics
+          case_sensitive: true
+
+  - id: contact_with_phone
+    input: |
+      Return JSON with fields "name" and "phone" for: "Jane Doe, +1-415-555-1234".
+    expected: |
+      {"name": "Jane Doe", "phone": "+1-415-555-1234"}
+    scorers:
+      - kind: json_schema
+        params:
+          schema:
+            type: object
+            required: ["name", "phone"]
+            properties:
+              name:
+                type: string
+              phone:
+                type: string
+      - kind: regex
+        params:
+          pattern: "\\+1-415-555-1234"
