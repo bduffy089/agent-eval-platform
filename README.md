@@ -39,20 +39,31 @@ Existing tools (LangSmith, Langfuse, Helicone, Braintrust) each solve part of th
 
 Working local-only platform doing these end to end:
 
-1. Provider abstraction with normalized response shape carrying token usage and dollar cost. Claude provider enables prompt caching by default.
-2. Single-agent task runtime with cheap-first model routing.
-3. Trace capture to Postgres: input, model, system prompt, tool calls, tool results, output, latency, tokens, cost, cache hit/miss.
-4. Eval pipeline with golden datasets, deterministic scorers, and LLM-as-judge with structured rubric output.
-5. Dogfood agent: porting a real production agent into the platform and measuring meaningful cost reduction with eval gates confirming quality holds.
-6. Dashboard with three views: recent runs, run detail with cost breakdown, and cost-over-time as the headline view.
-7. One-command bring-up via Docker Compose.
+| # | Deliverable | Status |
+|---|---|---|
+| 1 | Provider abstraction with normalized response shape carrying token usage and dollar cost. Claude provider enables prompt caching by default. | Shipped |
+| 2 | Centralized cost computation. Pricing tables, cache discount math, and itemized breakdown live in one place. | Shipped |
+| 3 | Eval pipeline with golden datasets, three deterministic scorers (regex, JSON schema, substring), and LLM-as-judge with structured rubric. | Shipped |
+| 4 | Single-agent task runtime with cheap-first model routing. | In progress |
+| 5 | Trace capture to Postgres: input, model, system prompt, tool calls, tool results, output, latency, tokens, cost, cache hit/miss. | In progress |
+| 6 | Dogfood agent: porting a real production agent into the platform and measuring meaningful cost reduction with eval gates confirming quality holds. | Planned |
+| 7 | Dashboard with three views: recent runs, run detail with cost breakdown, and cost-over-time as the headline view. | Planned |
+| 8 | One-command bring-up via Docker Compose. | Partial (Postgres and Redis only) |
 
 ## Repo layout
 
 ```
-backend/         FastAPI service, providers, evals, traces
-frontend/        React + Vite dashboard
-eval_datasets/   Golden datasets (JSON/YAML)
+backend/
+  src/
+    providers/   Claude and OpenAI behind one normalized response shape
+    traces/      Cost computation (pricing tables, cache discount math)
+    evals/       Datasets, deterministic scorers, LLM-as-judge, runner
+    agents/      Single-agent runtime (next)
+    db/          SQLAlchemy models + Alembic migrations (next)
+    api/         FastAPI service (next)
+  tests/         Pytest contract and unit tests
+frontend/        React + Vite dashboard (next)
+eval_datasets/   Golden datasets in JSON or YAML
 ```
 
 ## Quickstart
