@@ -25,30 +25,31 @@ Existing tools (LangSmith, Langfuse, Helicone, Braintrust) each solve part of th
 
 | Layer | Choice |
 |---|---|
-| LLM primary | Claude API (Sonnet default, Haiku for the cheap tier) |
+| LLM primary | Claude API (Sonnet 4.6 default, Haiku 4.5 for the cheap tier) |
 | LLM secondary | OpenAI API |
 | Agent patterns | Raw Claude API tool use, structured outputs, prompt caching |
 | Orchestration | None in Phase 1. Frameworkless on purpose. Adding a framework before the primitives are understood forfeits the ability to reason about them. |
 | Backend | Python 3.11+, FastAPI, Pydantic v2 |
 | DB | PostgreSQL with SQLAlchemy and Alembic |
 | Cache and queue | Redis |
-| Frontend | React, Vite, Tailwind |
+| Frontend | React, Vite, Tailwind, Recharts |
 | Dev env | Docker Compose, local only |
 
-## Phase 1 scope (in progress)
+## Phase 1 — shipped
 
 Working local-only platform doing these end to end:
 
 | # | Deliverable | Status |
 |---|---|---|
-| 1 | Provider abstraction with normalized response shape carrying token usage and dollar cost. Claude provider enables prompt caching by default. | Shipped |
-| 2 | Centralized cost computation. Pricing tables, cache discount math, and itemized breakdown live in one place. | Shipped |
-| 3 | Eval pipeline with golden datasets, three deterministic scorers (regex, JSON schema, substring), and LLM-as-judge with structured rubric. | Shipped |
-| 4 | Single-agent task runtime with cheap-first model routing. | In progress |
-| 5 | Trace capture to Postgres: input, model, system prompt, tool calls, tool results, output, latency, tokens, cost, cache hit/miss. | In progress |
-| 6 | Dogfood agent: porting a real production agent into the platform and measuring meaningful cost reduction with eval gates confirming quality holds. | Planned |
-| 7 | Dashboard with three views: recent runs, run detail with cost breakdown, and cost-over-time as the headline view. | Planned |
-| 8 | One-command bring-up via Docker Compose. | Partial (Postgres and Redis only) |
+| 1 | Provider abstraction with normalized response shape carrying token usage and dollar cost. Claude provider enables prompt caching by default. | ✅ Shipped |
+| 2 | Centralized cost computation. Pricing tables, cache discount math, and itemized breakdown live in one place. | ✅ Shipped |
+| 3 | Eval pipeline with golden datasets, three deterministic scorers (regex, JSON schema, substring), and LLM-as-judge with structured rubric. | ✅ Shipped |
+| 4 | Trace capture — every LLM call writes to Postgres with input, model, system prompt, tool calls, results, per-step latency, token counts, cost. | ✅ Shipped |
+| 5 | Market Researcher dogfood agent ported from Agentic GTM Infrastructure with full cost attribution. | ✅ Shipped |
+| 6 | React dashboard — 5 KPI stat cards (runs, pass rate, spend, traces, avg latency), cost-over-time area chart, runs list with pass-rate badges, run detail with per-case scorer verdicts, traces view with cache hit highlighting. | ✅ Shipped |
+| 7 | FastAPI backend with 7 API endpoints (`/api/runs`, `/api/traces`, `/api/dashboard/stats`, `/api/dashboard/cost-over-time`, `/api/dashboard/runs-over-time`, `/api/runs/{id}`, `/api/agents/market-research`). | ✅ Shipped |
+| 8 | Alembic migrations — initial migration creating `Trace`, `EvalRun`, and `EvalCaseResult` tables. Every table carries `tenant_id` from day one. | ✅ Shipped |
+| 9 | Docker Compose for one-command local startup: Postgres + Redis + backend + frontend. | ✅ Shipped |
 
 ## Repo layout
 
@@ -56,29 +57,44 @@ Working local-only platform doing these end to end:
 backend/
   src/
     providers/   Claude and OpenAI behind one normalized response shape
-    traces/      Cost computation (pricing tables, cache discount math)
+    traces/      Cost computation (pricing tables, cache discount math) + trace capture
     evals/       Datasets, deterministic scorers, LLM-as-judge, runner
-    agents/      Single-agent runtime (next)
-    db/          SQLAlchemy models + Alembic migrations (next)
-    api/         FastAPI service (next)
+    agents/      Market Researcher dogfood agent with tool use
+    db/          SQLAlchemy models + Alembic migrations
+    api/         FastAPI app + route modules
+  alembic/       Migration env + version scripts
   tests/         Pytest contract and unit tests
-frontend/        React + Vite dashboard (next)
-eval_datasets/   Golden datasets in JSON or YAML
+frontend/        React + Vite dashboard (StatsCards, CostChart, RunsList, RunDetail, TracesView)
+eval_datasets/   Golden datasets in YAML (json_extraction included)
 ```
 
 ## Quickstart
 
 ```bash
 cp .env.example .env
-# fill in ANTHROPIC_API_KEY and OPENAI_API_KEY
-docker compose up -d
+# add ANTHROPIC_API_KEY (and optionally OPENAI_API_KEY)
+docker compose up
 ```
 
-That brings up Postgres and Redis. Backend and frontend land in subsequent commits.
+Brings up Postgres, Redis, the FastAPI backend (with Alembic auto-migrate on start), and the Vite dev server. Dashboard at `http://localhost:5173`.
+
+**Without Docker** (backend and frontend already running):
+
+```bash
+# Terminal 1 — backend
+cd backend
+DATABASE_URL=postgresql+psycopg2://agenteval:agenteval@localhost:5432/agenteval \
+  python -m alembic upgrade head
+DATABASE_URL=postgresql+psycopg2://agenteval:agenteval@localhost:5432/agenteval \
+  python -m uvicorn main:app --reload --port 8000
+
+# Terminal 2 — frontend
+cd frontend && npm install && npm run dev
+```
 
 ## Status
 
-Phase 1 bootstrap. Single tenant. Local only. Active build.
+Phase 1 complete. Single tenant. Local only. Phase 2 next: real model routing, multi-agent trace stitching, and CI eval gates.
 
 ## License
 
