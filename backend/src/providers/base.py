@@ -12,7 +12,7 @@ co-located with the API call that produced it.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -47,13 +47,13 @@ class CompletionResponse(BaseModel):
     """
 
     content: str
-    tool_calls: list[ToolCall] = Field(default_factory=list)
+    tool_calls: List[ToolCall] = Field(default_factory=list)
     usage: TokenUsage
     cost_usd: float
     latency_ms: int
     model: str
     provider: str
-    raw: dict[str, Any] | None = None
+    raw: Optional[Dict[str, Any]] = None
 
 
 class Provider(ABC):

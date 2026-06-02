@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-zinc-950 text-zinc-100 font-sans antialiased;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  code, pre, .mono {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+}
+
+@layer utilities {
+  .card {
+    @apply bg-zinc-900 border border-zinc-800 rounded-xl p-5;
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold tracking-tight;
+  }
+
+  .stat-label {
+    @apply text-xs text-zinc-500 uppercase tracking-widest font-medium mt-1;
+  }
+
+  .badge-pass {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+  }
+
+  .badge-fail {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20;
+  }
+}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
+from typing import Optional
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -16,8 +17,8 @@ DEFAULT_TENANT_ID = "britney"
 
 
 class Settings(BaseModel):
-    anthropic_api_key: str | None = None
-    openai_api_key: str | None = None
+    anthropic_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = None
     database_url: str = "postgresql+psycopg2://agenteval:agenteval@localhost:5432/agenteval"
     redis_url: str = "redis://localhost:6379/0"
     tenant_id: str = DEFAULT_TENANT_ID

@@ -7,7 +7,7 @@ substring) or LLM-as-judge (a rubric scored by a model).
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -18,12 +18,7 @@ class ScorerSpec(BaseModel):
     """Configuration for a single scorer applied to a model output."""
 
     kind: ScorerKind
-    # Free-form params per scorer kind. Examples:
-    #   regex:       {"pattern": "^[A-Z].*"}
-    #   json_schema: {"schema": {...}}
-    #   contains:    {"substring": "foo", "case_sensitive": false}
-    #   judge:       {"rubric": "...", "judge_model": "claude-sonnet-4-6", "pass_threshold": 0.7}
-    params: dict[str, Any] = Field(default_factory=dict)
+    params: Dict[str, Any] = Field(default_factory=dict)
 
 
 class EvalCase(BaseModel):
@@ -31,20 +26,18 @@ class EvalCase(BaseModel):
 
     id: str
     input: str
-    description: str | None = None
-    scorers: list[ScorerSpec]
-    # Optional reference output. Used by some scorers (for example a judge that
-    # compares to a known good answer) and ignored by others.
-    expected: str | None = None
-    tags: list[str] = Field(default_factory=list)
+    description: Optional[str] = None
+    scorers: List[ScorerSpec]
+    expected: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
 
 
 class EvalDataset(BaseModel):
     """A named bundle of cases that test one task type."""
 
     name: str
-    description: str | None = None
-    cases: list[EvalCase]
+    description: Optional[str] = None
+    cases: List[EvalCase]
 
 
 class ScoreResult(BaseModel):
@@ -52,8 +45,8 @@ class ScoreResult(BaseModel):
 
     scorer: ScorerKind
     passed: bool
-    score: float  # 0.0 to 1.0. Deterministic scorers report 0 or 1.
-    reason: str | None = None
+    score: float
+    reason: Optional[str] = None
 
 
 class CaseResult(BaseModel):
@@ -62,17 +55,20 @@ class CaseResult(BaseModel):
     case_id: str
     output: str
     passed: bool
-    scores: list[ScoreResult]
+    scores: List[ScoreResult]
+    cost_usd: float = 0.0
+    latency_ms: int = 0
 
 
 class EvalRunResult(BaseModel):
     """Outcome of running a dataset against a provider and model."""
 
-    dataset: str
+    dataset_name: str
     provider: str
     model: str
-    total: int
-    passed: int
+    total_cases: int
+    passed_cases: int
     pass_rate: float
     total_cost_usd: float
-    cases: list[CaseResult]
+    total_latency_ms: int
+    case_results: List[CaseResult]

@@ -7,6 +7,8 @@ provider-agnostic; it speaks to the Provider abstraction, never to a vendor SDK.
 
 from __future__ import annotations
 
+from typing import List, Tuple
+
 from ..providers.base import Provider
 from .models import (
     CaseResult,
@@ -29,11 +31,10 @@ async def _apply_scorer(output: str, spec: ScorerSpec) -> ScoreResult:
         return score_json_schema(output, spec.params)
     if spec.kind == "judge":
         return await score_judge(output, spec.params)
-    # Unreachable given the Literal typing on ScorerKind, but explicit beats clever.
     raise ValueError(f"unknown scorer kind: {spec.kind}")
 
 
-async def run_case(provider: Provider, model: str, case: EvalCase) -> tuple[CaseResult, float]:
+async def run_case(provider: Provider, model: str, case: EvalCase) -> Tuple[CaseResult, float]:
     """Run one case end to end. Returns the case result and its dollar cost."""
     response = await provider.complete(
         model=model,
@@ -47,31 +48,34 @@ async def run_case(provider: Provider, model: str, case: EvalCase) -> tuple[Case
             output=response.content,
             passed=all(s.passed for s in scores),
             scores=scores,
+            cost_usd=response.cost_usd,
+            latency_ms=response.latency_ms,
         ),
         response.cost_usd,
     )
 
 
-async def run_dataset(
-    provider: Provider, model: str, dataset: EvalDataset
-) -> EvalRunResult:
+async def run_dataset(provider: Provider, model: str, dataset: EvalDataset) -> EvalRunResult:
     """Run every case in the dataset and aggregate the verdict."""
-    case_results: list[CaseResult] = []
+    case_results: List[CaseResult] = []
     total_cost = 0.0
+    total_latency = 0
     for case in dataset.cases:
         result, cost = await run_case(provider, model, case)
         case_results.append(result)
         total_cost += cost
+        total_latency += result.latency_ms
 
     passed = sum(1 for r in case_results if r.passed)
     total = len(case_results)
     return EvalRunResult(
-        dataset=dataset.name,
+        dataset_name=dataset.name,
         provider=provider.name,
         model=model,
-        total=total,
-        passed=passed,
+        total_cases=total,
+        passed_cases=passed,
         pass_rate=round(passed / total, 4) if total else 0.0,
         total_cost_usd=round(total_cost, 6),
-        cases=case_results,
+        total_latency_ms=total_latency,
+        case_results=case_results,
     )
