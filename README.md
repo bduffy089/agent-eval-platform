@@ -1,5 +1,4 @@
 # agent-eval-platform
-<meta name="gtmcommit-verify" content="portfolio">
 
 **Cost-aware eval and observability infrastructure for production LLM agents.**
 
